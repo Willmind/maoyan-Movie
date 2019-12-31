@@ -1,36 +1,47 @@
 <template>
   <div>
-    <div class="movie-header">
-      <div class="bg-second"></div>
-      <div class="bg-last"></div>
-      <div class="movie-img">
-        <img :src="movieDetail.img.replace('w.h','128.180')" alt>
+    <loading v-if="!isReady"></loading>
+    <div v-if="isReady">
+      <page-title :showBack='true'>{{movieDetail.nm}}</page-title>
+      <div class="movie-header">
+        <!-- 设置背景模糊 -->
+        <div class="bg-last">
+          <img :src="movieDetail.img.replace('w.h','128.180')">
+        </div>
+        <div class="bg-fliter"></div>
+        <!-- 左侧海报 -->
+        <div class="movie-img">
+          <img @click="showPlayVD=true" :src="movieDetail.img.replace('w.h','128.180')">
+        </div>
+        <ul class="movie-info">
+          <li class="name">{{movieDetail.nm}}</li>
+          <li class="enm">{{movieDetail.enm}}</li>
+          <li v-if="movieDetail.globalReleased && movieDetail.sc!==0" class="score">
+            观众评
+            <span>{{movieDetail.sc}}</span>
+          </li>
+          <li style="font-size: 14px;color: #888" v-if="movieDetail.globalReleased && movieDetail.sc==0">暂无评分</li>
+          <li v-if="!movieDetail.globalReleased" class="score">
+            <span>{{movieDetail.wish}}</span> 想看
+          </li>
+          <li>{{movieDetail.cat}}</li>
+          <li>{{movieDetail.src}}</li>
+          <li>{{movieDetail.pubDesc}}</li>
+        </ul>
       </div>
-      <ul class="movie-info">
-        <li class="name">{{movieDetail.nm}}</li>
-        <li class="enm">{{movieDetail.enm}}</li>
-        <li v-if="movieDetail.globalReleased && movieDetail.sc!==0" class="score">
-          观众评
-          <span>{{movieDetail.sc}}</span>
-        </li>
-        <li
-          style="font-size: 14px;color: #888"
-          v-if="movieDetail.globalReleased && movieDetail.sc==0"
-        >暂无评分</li>
-        <li v-if="!movieDetail.globalReleased" class="score">
-          <span>{{movieDetail.wish}}</span> 想看
-        </li>
-        <li>{{movieDetail.cat}}</li>
-        <li>{{movieDetail.src}}</li>
-        <li>{{movieDetail.pubDesc}}</li>
-      </ul>
-    </div>
 
-    <button class="buy-btn">特惠购票</button>
-    <!-- 查看全部介绍开关 -->
-    <div class="movie-intro">
-      <p :class="btnType?'overflow':''">{{movieDetail.dra}}</p>
-      <img @click="btnType=!btnType" class="btn" :src="btnType?downBtnSrc:upBtnSrc" alt>
+      <button class="buy-btn">特惠购票</button>
+
+      <!-- 查看全部介绍开关 -->
+      <div class="movie-intro">
+        <p :class="btnType?'overflow':''">{{movieDetail.dra}}</p>
+        <img @click="btnType=!btnType" class="btn" :src="btnType?downBtnSrc:upBtnSrc" alt>
+      </div>
+
+      <!-- 播放电影宣传片 -->
+      <div class="play-vd" v-if="showPlayVD" @click="showPlayVD=false">
+        <video controls autoplay :src="movieDetail.vd" width="100%"> </video>
+      </div>
     </div>
   </div>
 </template>
@@ -47,10 +58,12 @@
     export default {
         data() {
             return {
+                isReady: false,
                 movieDetail: null,
                 btnType: true,
                 downBtnSrc,
-                upBtnSrc
+                upBtnSrc,
+                showPlayVD: false,
             };
         },
         created() {
@@ -58,15 +71,13 @@
             axios
                 .get("http://www.softeem.xin/maoyanApi/ajax/detailmovie?movieId=" + id)
                 .then(res => {
-                    this.movieDetail = res.data.detailMovie;
                     console.log(res);
+                    this.movieDetail = res.data.detailMovie;
+                    this.isReady = true;
                 });
-        },
-        mounted() {
-            console.log(111);
-
         }
     };
+
 </script>
 
 <style lang="scss" scoped>
@@ -78,47 +89,60 @@
       justify-content: left;
       align-items: center;
     }
+
     height: 165px;
     width: 100%;
-    padding: 15px;
-    background-color: rgba(231, 223, 223, 0.4);
-    >.bg-second{
+
+    >.bg-last {
       position: absolute;
       width: 100%;
       height: 165px;
-      background-color: rgba(85,85,85,.7);
-      margin-left: -15px;
+      z-index: -2;
+      overflow: hidden;
+
+      >img {
+        width: 100%;
+        height: 100%;
+        filter: blur(27px);
+      }
+    }
+
+    >.bg-fliter {
+      height: 165px;
+      width: 100%;
+      background-color: #40454d;
+      opacity: 0.55;
+      position: absolute;
       z-index: -1;
     }
-    > .bg-last {
-      position: absolute;
-      width: 100%;
-      height: 165px;
-      background:radial-gradient(60% 55%,rgb(184, 194, 189),rgb(16, 80, 85));
-      margin-left: -15px;
-      z-index: -2;
-    }
-    > .movie-info {
+
+    >.movie-info {
       height: 135px;
       font-size: 12.5px;
       color: #e6e0e0;
-      > .name {
+
+      >.name {
         font-size: 16px;
         color: #fbfbfb;
         font-weight: normal;
       }
-      >.enm{
+
+      >.enm {
         font-size: 11px;
         color: #ebebeb;
         margin-bottom: 6px;
       }
     }
-    > .movie-img {
+
+    >.movie-img {
+      margin-left: 15px;
       position: relative;
+
       img {
         width: 96.5px;
         height: 135px;
       }
+
       &:after {
         content: "▶";
         color: #fff;
@@ -149,20 +173,40 @@
     border: none;
     background-color: #e54847;
   }
+
   .movie-intro {
     text-align: center;
     width: 100%;
     padding: 3px 16px;
-    > p {
+
+    >p {
       font-size: 14px;
       color: #666;
       overflow: hidden;
     }
-    > .btn {
+
+    >.btn {
       width: 16px;
     }
   }
+
   .overflow {
     max-height: 60px;
   }
+
+  .play-vd {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, .7);
+
+    >video {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+  }
+
 </style>
